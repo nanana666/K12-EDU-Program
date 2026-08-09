@@ -1,0 +1,11 @@
+# Web 框架与 ASGI 服务器
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# ORM 与数据库
+sqlalchemy>=2.0.30
+
+# 数据校验与配置
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+
