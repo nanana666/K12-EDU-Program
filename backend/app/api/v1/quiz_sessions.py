@@ -1,10 +1,12 @@
 """答题活动路由：创建、分发、提交、统计。"""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.response import success
 from app.db.session import get_db
+from app.models.answer import AnswerRecord
 from app.schemas.quiz import (
     ActiveQuizOut,
     AnswerSubmitIn,
@@ -16,7 +18,9 @@ from app.services.quiz_service import (
     create_quiz_session,
     finish_session,
     get_active_session,
+    get_session_for_student,
     get_stats,
+    list_active_sessions,
     list_quiz_sessions,
     submit_answers,
 )
@@ -67,6 +71,69 @@ def active(db: Session = Depends(get_db)) -> dict:
                     for opt in sq.question.options
                 ],
                 # 只告诉学生端正确答案数量（用于判断是否多选），不泄露具体选项
+                "correct_count": sum(1 for opt in sq.question.options if opt.is_correct),
+            }
+            for sq in session.questions
+        ],
+    }
+    return success(data=data)
+
+
+@router.get("/active-list")
+def active_list(
+    student_id: str | None = Query(default=None, description="当前学生学号"),
+    db: Session = Depends(get_db),
+) -> dict:
+    """学生端活动列表：返回所有进行中的活动概要，并标注当前学生是否已提交。"""
+    sessions = list_active_sessions(db)
+    submitted_ids: set[int] = set()
+    if student_id:
+        rows = db.scalars(
+            select(AnswerRecord.session_id).where(
+                AnswerRecord.student_id == student_id
+            )
+        ).all()
+        submitted_ids = set(rows)
+    return success(
+        data=[
+            {**_session_out(s), "submitted": s.id in submitted_ids}
+            for s in sessions
+        ]
+    )
+
+
+@router.get("/{session_id}")
+def detail(
+    session_id: int,
+    student_id: str | None = Query(default=None, description="当前学生学号"),
+    db: Session = Depends(get_db),
+) -> dict:
+    """学生端获取单个活动详情（不含正确答案，仅暴露正确答案数量与提交状态）。"""
+    session = get_session_for_student(db, session_id)
+    submitted = False
+    if student_id:
+        submitted = (
+            db.scalar(
+                select(AnswerRecord.id).where(
+                    AnswerRecord.session_id == session_id,
+                    AnswerRecord.student_id == student_id,
+                )
+            )
+            is not None
+        )
+    data = {
+        "id": session.id,
+        "title": session.title,
+        "status": session.status,
+        "submitted": submitted,
+        "questions": [
+            {
+                "id": sq.question.id,
+                "text": sq.question.text,
+                "options": [
+                    {"id": opt.id, "text": opt.text}
+                    for opt in sq.question.options
+                ],
                 "correct_count": sum(1 for opt in sq.question.options if opt.is_correct),
             }
             for sq in session.questions

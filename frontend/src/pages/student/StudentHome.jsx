@@ -1,66 +1,48 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 import http from "@/api/http";
 import { useAuth } from "@/store/auth";
+import QuizList from "./components/QuizList";
 import QuizPlayer from "./components/QuizPlayer";
 import WaitingRoom from "./components/WaitingRoom";
 
 /**
- * 学生端主页：等待出题 → 沉浸式答题 → 提交完成。
+ * 学生端主页：活动列表（自行选择）→ 沉浸式答题 → 提交完成。
  */
 export default function StudentHome() {
-  const { student } = useAuth();
+  const { student, logoutStudent } = useAuth();
   const navigate = useNavigate();
-  const [phase, setPhase] = useState("waiting"); // waiting | playing | done
+  const [phase, setPhase] = useState("list"); // list | waiting | playing | done
   const [activeQuiz, setActiveQuiz] = useState(null);
-  const [error, setError] = useState("");
 
   if (!student) {
     return <Navigate to="/student" replace />;
   }
 
-  // 获取已提交过的活动 ID，避免重复进入
-  const getSubmittedIds = () => {
+  const handleSelectQuiz = async (sessionId) => {
     try {
-      return JSON.parse(localStorage.getItem("k12-submitted-sessions") || "[]");
+      const data = await http.get(`/quiz-sessions/${sessionId}`);
+      if (data.submitted) {
+        // 后端判定已提交过，直接回到列表
+        setPhase("list");
+        return;
+      }
+      setActiveQuiz(data);
+      setPhase("playing");
     } catch {
-      return [];
+      // 活动可能已被教师结束，回到列表刷新即可
+      setPhase("list");
     }
   };
 
-  // 等待阶段：每 3 秒轮询当前活跃活动
-  useEffect(() => {
-    if (phase !== "waiting") return undefined;
-    const submitted = getSubmittedIds();
-    const check = async () => {
-      try {
-        const data = await http.get("/quiz-sessions/active");
-        if (data && !submitted.includes(data.id)) {
-          setActiveQuiz(data);
-          setPhase("playing");
-        }
-      } catch {
-        // 学生端连不上教师端时保持等待，不打扰
-      }
-    };
-    check();
-    const timer = setInterval(check, 3000);
-    return () => clearInterval(timer);
-  }, [phase]);
-
-  const handleSubmitted = (sessionId) => {
-    const submitted = getSubmittedIds();
-    localStorage.setItem(
-      "k12-submitted-sessions",
-      JSON.stringify([...new Set([...submitted, sessionId])]),
-    );
+  const handleSubmitted = () => {
     setPhase("done");
   };
 
-  const handleBackToWaiting = () => {
+  const handleBackToList = () => {
     setActiveQuiz(null);
-    setPhase("waiting");
+    setPhase("list");
   };
 
   if (phase === "playing" && activeQuiz) {
@@ -83,13 +65,16 @@ export default function StudentHome() {
         <p className="text-slate-500">你的答案已提交给老师</p>
         <div className="flex gap-3">
           <button
-            onClick={handleBackToWaiting}
+            onClick={handleBackToList}
             className="rounded-xl bg-emerald-600 px-8 py-3 font-medium text-white transition hover:bg-emerald-700"
           >
-            返回等待
+            返回活动列表
           </button>
           <button
-            onClick={() => navigate("/student", { replace: true })}
+            onClick={() => {
+              logoutStudent();
+              navigate("/student", { replace: true });
+            }}
             className="rounded-xl border border-slate-300 px-8 py-3 font-medium text-slate-600 transition hover:bg-slate-50"
           >
             切换账号
@@ -100,11 +85,26 @@ export default function StudentHome() {
   }
 
   return (
-    <WaitingRoom
-      student={student}
-      error={error}
-      onLogout={() => navigate("/student", { replace: true })}
-      onRetry={() => setError("")}
-    />
+    phase === "waiting" ? (
+      <WaitingRoom
+        student={student}
+        onNewQuiz={() => setPhase("list")}
+        onBack={() => setPhase("list")}
+        onLogout={() => {
+          logoutStudent();
+          navigate("/student", { replace: true });
+        }}
+      />
+    ) : (
+      <QuizList
+        student={student}
+        onSelect={handleSelectQuiz}
+        onWait={() => setPhase("waiting")}
+        onLogout={() => {
+          logoutStudent();
+          navigate("/student", { replace: true });
+        }}
+      />
+    )
   );
 }

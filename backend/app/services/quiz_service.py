@@ -83,6 +83,33 @@ def get_active_session(db: Session) -> QuizSession | None:
     )
 
 
+def list_active_sessions(db: Session) -> list[QuizSession]:
+    """返回所有进行中的活动（学生端活动列表）。"""
+    stmt = (
+        select(QuizSession)
+        .where(QuizSession.status == "active")
+        .options(selectinload(QuizSession.questions))
+        .order_by(QuizSession.id.desc())
+    )
+    return list(db.scalars(stmt).unique())
+
+
+def get_session_for_student(db: Session, session_id: int) -> QuizSession:
+    """获取单个活动详情（学生视角，路由层负责剥离正确答案）。"""
+    session = db.scalar(
+        select(QuizSession)
+        .where(QuizSession.id == session_id)
+        .options(
+            selectinload(QuizSession.questions).selectinload(
+                QuizSessionQuestion.question
+            )
+        )
+    )
+    if session is None:
+        raise NotFoundError(f"答题活动不存在：{session_id}")
+    return session
+
+
 def finish_session(db: Session, session_id: int) -> QuizSession:
     """结束答题活动。"""
     session = _get_session(db, session_id)
@@ -99,6 +126,20 @@ def submit_answers(
     session = _get_session(db, session_id)
     if session.status != "active":
         raise AppError("该答题活动已结束，无法提交", code=409, status_code=409)
+
+    # 同一学生同一活动只允许提交一次，禁止重新作答
+    existed = db.scalar(
+        select(AnswerRecord.id).where(
+            AnswerRecord.session_id == session_id,
+            AnswerRecord.student_id == student_id,
+        )
+    )
+    if existed is not None:
+        raise AppError(
+            "你已提交过该答题活动，不能重复作答",
+            code=409,
+            status_code=409,
+        )
 
     # 学号不存在则自动创建学生
     student = db.get(Student, student_id)
