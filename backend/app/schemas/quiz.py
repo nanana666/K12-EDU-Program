@@ -35,6 +35,9 @@ class ActiveQuestionOut(BaseModel):
     id: int
     text: str
     options: list[ActiveOptionOut]
+    correct_count: int = Field(
+        default=1, description="正确答案数量（>1 表示多选题，不泄露具体选项）"
+    )
 
 
 class ActiveQuizOut(BaseModel):
@@ -47,10 +50,16 @@ class ActiveQuizOut(BaseModel):
 
 
 class AnswerItemIn(BaseModel):
-    """单题答案。"""
+    """单题答案：支持单选与多选。
+
+    兼容两种写法：
+    - 多选/统一格式：{"question_id": 1, "option_ids": [2, 3]}
+    - 旧格式单选：{"question_id": 1, "option_id": 2}
+    """
 
     question_id: int
-    option_id: int
+    option_ids: list[int] | None = None
+    option_id: int | None = None
 
 
 class AnswerSubmitIn(BaseModel):

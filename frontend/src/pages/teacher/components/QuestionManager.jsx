@@ -215,19 +215,10 @@ export default function QuestionManager() {
               {form.options.map((opt, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <input
-                    type="radio"
-                    name="correct-option"
+                    type="checkbox"
                     checked={opt.is_correct}
-                    onChange={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        options: prev.options.map((o, i) => ({
-                          ...o,
-                          is_correct: i === index,
-                        })),
-                      }))
-                    }
-                    title="标记为正确答案"
+                    onChange={() => updateOption(index, { is_correct: !opt.is_correct })}
+                    title="标记为正确答案（可多选）"
                     className="h-4 w-4 accent-emerald-600"
                   />
                   <input
@@ -264,6 +255,9 @@ export default function QuestionManager() {
                 保存题目
               </button>
             </div>
+            <p className="text-xs text-slate-400">
+              提示：勾选多个“正确”即为多选题，学生需选全所有正确选项才得分。
+            </p>
           </form>
         </section>
 

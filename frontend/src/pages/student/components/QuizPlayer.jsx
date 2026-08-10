@@ -15,12 +15,22 @@ export default function QuizPlayer({ quiz, student, onSubmitted }) {
   const questions = quiz.questions;
   const question = questions[current];
   const total = questions.length;
-  const selected = answers[question.id];
+  const isMulti = question.correct_count > 1;
+  const selected = answers[question.id] || [];
+  const selectedCount = selected.length;
   const isLast = current === total - 1;
-  const progress = ((current + (selected != null ? 1 : 0)) / total) * 100;
+  const progress = ((current + (selectedCount > 0 ? 1 : 0)) / total) * 100;
 
   const pick = (optionId) => {
-    setAnswers((prev) => ({ ...prev, [question.id]: optionId }));
+    setAnswers((prev) => {
+      if (isMulti) {
+        const next = new Set(prev[question.id] || []);
+        if (next.has(optionId)) next.delete(optionId);
+        else next.add(optionId);
+        return { ...prev, [question.id]: [...next] };
+      }
+      return { ...prev, [question.id]: [optionId] };
+    });
   };
 
   const goNext = () => {
@@ -35,7 +45,7 @@ export default function QuizPlayer({ quiz, student, onSubmitted }) {
         student_id: student.id,
         answers: questions.map((q) => ({
           question_id: q.id,
-          option_id: answers[q.id],
+          option_ids: answers[q.id] || [],
         })),
       });
       onSubmitted(quiz.id);
@@ -67,13 +77,23 @@ export default function QuizPlayer({ quiz, student, onSubmitted }) {
       {/* 题目与选项 */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
         <div className="w-full max-w-2xl">
+          {isMulti && (
+            <div className="mb-5 flex items-center justify-center gap-2">
+              <span className="rounded-full bg-amber-100 px-4 py-1 text-sm font-semibold text-amber-700">
+                多选题 · 共 {question.correct_count} 个正确答案
+              </span>
+              <span className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-500">
+                需选全所有正确选项
+              </span>
+            </div>
+          )}
           <h1 className="text-center text-3xl font-bold leading-relaxed text-slate-800 md:text-4xl">
             {question.text}
           </h1>
 
           <div className="mt-10 flex flex-col gap-4">
             {question.options.map((opt) => {
-              const isSelected = selected === opt.id;
+              const isSelected = selected.includes(opt.id);
               return (
                 <button
                   key={opt.id}
@@ -99,7 +119,7 @@ export default function QuizPlayer({ quiz, student, onSubmitted }) {
             {isLast ? (
               <button
                 onClick={handleSubmit}
-                disabled={selected == null || submitting}
+                disabled={selectedCount === 0 || submitting}
                 className="rounded-2xl bg-emerald-600 px-12 py-4 text-xl font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
               >
                 {submitting ? "提交中…" : "提交答案"}
@@ -107,7 +127,7 @@ export default function QuizPlayer({ quiz, student, onSubmitted }) {
             ) : (
               <button
                 onClick={goNext}
-                disabled={selected == null}
+                disabled={selectedCount === 0}
                 className="rounded-2xl bg-emerald-600 px-12 py-4 text-xl font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
               >
                 下一题
@@ -116,7 +136,7 @@ export default function QuizPlayer({ quiz, student, onSubmitted }) {
           </div>
           {!isLast && (
             <p className="mt-4 text-center text-xs text-slate-300">
-              选好后点“下一题”继续
+              {isMulti ? "可多选，选好后点“下一题”继续" : "选好后点“下一题”继续"}
             </p>
           )}
         </div>

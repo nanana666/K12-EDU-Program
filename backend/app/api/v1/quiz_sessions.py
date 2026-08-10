@@ -66,6 +66,8 @@ def active(db: Session = Depends(get_db)) -> dict:
                     {"id": opt.id, "text": opt.text}
                     for opt in sq.question.options
                 ],
+                # 只告诉学生端正确答案数量（用于判断是否多选），不泄露具体选项
+                "correct_count": sum(1 for opt in sq.question.options if opt.is_correct),
             }
             for sq in session.questions
         ],

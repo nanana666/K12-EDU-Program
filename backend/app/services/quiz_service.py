@@ -1,5 +1,6 @@
 """答题活动业务逻辑：创建、分发、提交、统计。"""
 
+import json
 from collections import defaultdict
 
 from sqlalchemy import select
@@ -109,18 +110,52 @@ def submit_answers(
 
     for item in answers:
         question_id = item["question_id"]
-        option_id = item["option_id"]
         if question_id not in allowed_questions:
             raise AppError(
                 f"题目 {question_id} 不属于该答题活动", code=400, status_code=400
             )
-        option = db.get(Option, option_id)
-        if option is None or option.question_id != question_id:
+
+        # 兼容旧格式 option_id，统一转为 option_ids
+        option_ids = item.get("option_ids")
+        if option_ids is None:
+            single = item.get("option_id")
+            if single is None:
+                raise AppError(
+                    "答案缺少所选选项", code=400, status_code=400
+                )
+            option_ids = [single]
+        option_ids = [int(oid) for oid in option_ids]
+        if not option_ids:
             raise AppError(
-                f"选项 {option_id} 与题目 {question_id} 不匹配",
+                "答案不能为空选项列表", code=400, status_code=400
+            )
+
+        # 校验所有选项都属于该题
+        options = list(
+            db.scalars(
+                select(Option).where(
+                    Option.id.in_(option_ids), Option.question_id == question_id
+                )
+            )
+        )
+        if len(options) != len(set(option_ids)):
+            raise AppError(
+                f"部分选项不属于题目 {question_id}",
                 code=400,
                 status_code=400,
             )
+
+        # 判分：多选题须恰好选全所有正确答案，否则判错
+        correct_option_ids = {
+            opt.id
+            for opt in db.scalars(
+                select(Option).where(
+                    Option.question_id == question_id, Option.is_correct.is_(True)
+                )
+            )
+        }
+        is_multi = len(correct_option_ids) > 1
+        is_correct = set(option_ids) == correct_option_ids
 
         record = db.scalar(
             select(AnswerRecord).where(
@@ -134,13 +169,17 @@ def submit_answers(
                 session_id=session_id,
                 student_id=student_id,
                 question_id=question_id,
-                selected_option_id=option_id,
-                is_correct=option.is_correct,
+                selected_option_ids=json.dumps(option_ids, ensure_ascii=False),
+                selected_option_id=option_ids[0] if not is_multi else None,
+                is_multi=is_multi,
+                is_correct=is_correct,
             )
             db.add(record)
         else:
-            record.selected_option_id = option_id
-            record.is_correct = option.is_correct
+            record.selected_option_ids = json.dumps(option_ids, ensure_ascii=False)
+            record.selected_option_id = option_ids[0] if not is_multi else None
+            record.is_multi = is_multi
+            record.is_correct = is_correct
 
     db.commit()
     return session

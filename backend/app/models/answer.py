@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -36,8 +37,18 @@ class AnswerRecord(Base):
     question_id: Mapped[int] = mapped_column(
         ForeignKey("questions.id", ondelete="CASCADE")
     )
-    selected_option_id: Mapped[int] = mapped_column(
-        ForeignKey("options.id", ondelete="CASCADE"), comment="所选选项 ID"
+    # 兼容单选：保留单选项字段（旧数据）
+    selected_option_id: Mapped[int | None] = mapped_column(
+        ForeignKey("options.id", ondelete="CASCADE"),
+        nullable=True,
+        comment="所选选项 ID（单选/旧数据）",
+    )
+    # 多选/单选统一使用 JSON 数组存储所选选项 ID 列表
+    selected_option_ids: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="所选选项 ID 列表（JSON 数组）"
+    )
+    is_multi: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="是否多选题"
     )
     is_correct: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否答对")
     submitted_at: Mapped[datetime] = mapped_column(

@@ -1,0 +1,182 @@
+[
+  {
+    "text": "《静夜思》的作者是谁？",
+    "options": [
+      { "text": "李白", "is_correct": true },
+      { "text": "杜甫", "is_correct": false },
+      { "text": "白居易", "is_correct": false },
+      { "text": "王维", "is_correct": false }
+    ]
+  },
+  {
+    "text": "《春晓》的作者是谁？",
+    "options": [
+      { "text": "孟浩然", "is_correct": true },
+      { "text": "李白", "is_correct": false },
+      { "text": "贺知章", "is_correct": false },
+      { "text": "王之涣", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“床前明月光”的下一句是什么？",
+    "options": [
+      { "text": "疑是地上霜", "is_correct": true },
+      { "text": "低头思故乡", "is_correct": false },
+      { "text": "举头望明月", "is_correct": false },
+      { "text": "白日依山尽", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“欲穷千里目”的下一句是什么？",
+    "options": [
+      { "text": "更上一层楼", "is_correct": true },
+      { "text": "疑是银河落九天", "is_correct": false },
+      { "text": "春风不度玉门关", "is_correct": false },
+      { "text": "万紫千红总是春", "is_correct": false }
+    ]
+  },
+  {
+    "text": "《咏鹅》的作者是谁？",
+    "options": [
+      { "text": "骆宾王", "is_correct": true },
+      { "text": "杜甫", "is_correct": false },
+      { "text": "王勃", "is_correct": false },
+      { "text": "李白", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“春眠不觉晓”中的“晓”指的是什么？",
+    "options": [
+      { "text": "天刚亮", "is_correct": true },
+      { "text": "中午", "is_correct": false },
+      { "text": "傍晚", "is_correct": false },
+      { "text": "深夜", "is_correct": false }
+    ]
+  },
+  {
+    "text": "《望庐山瀑布》的作者是谁？",
+    "options": [
+      { "text": "李白", "is_correct": true },
+      { "text": "苏轼", "is_correct": false },
+      { "text": "杨万里", "is_correct": false },
+      { "text": "王昌龄", "is_correct": false }
+    ]
+  },
+  {
+    "text": "李白被后人尊称为什么？",
+    "options": [
+      { "text": "诗仙", "is_correct": true },
+      { "text": "诗圣", "is_correct": false },
+      { "text": "诗鬼", "is_correct": false },
+      { "text": "诗魔", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“谁知盘中餐，粒粒皆辛苦”出自哪首诗？",
+    "options": [
+      { "text": "《悯农》", "is_correct": true },
+      { "text": "《静夜思》", "is_correct": false },
+      { "text": "《咏柳》", "is_correct": false },
+      { "text": "《登鹳雀楼》", "is_correct": false }
+    ]
+  },
+  {
+    "text": "《悯农》的作者是谁？",
+    "options": [
+      { "text": "李绅", "is_correct": true },
+      { "text": "李白", "is_correct": false },
+      { "text": "杜甫", "is_correct": false },
+      { "text": "孟浩然", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“举头望明月”的下一句是什么？",
+    "options": [
+      { "text": "低头思故乡", "is_correct": true },
+      { "text": "疑是地上霜", "is_correct": false },
+      { "text": "更上一层楼", "is_correct": false },
+      { "text": "春风又绿江南岸", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“小时不识月，呼作白玉盘”的作者是谁？",
+    "options": [
+      { "text": "李白", "is_correct": true },
+      { "text": "杜甫", "is_correct": false },
+      { "text": "白居易", "is_correct": false },
+      { "text": "苏轼", "is_correct": false }
+    ]
+  },
+  {
+    "text": "中国四大名著不包括下列哪一部？",
+    "options": [
+      { "text": "《聊斋志异》", "is_correct": true },
+      { "text": "《红楼梦》", "is_correct": false },
+      { "text": "《西游记》", "is_correct": false },
+      { "text": "《水浒传》", "is_correct": false }
+    ]
+  },
+  {
+    "text": "《西游记》的作者是谁？",
+    "options": [
+      { "text": "吴承恩", "is_correct": true },
+      { "text": "罗贯中", "is_correct": false },
+      { "text": "施耐庵", "is_correct": false },
+      { "text": "曹雪芹", "is_correct": false }
+    ]
+  },
+  {
+    "text": "《红楼梦》的作者是谁？",
+    "options": [
+      { "text": "曹雪芹", "is_correct": true },
+      { "text": "吴承恩", "is_correct": false },
+      { "text": "罗贯中", "is_correct": false },
+      { "text": "施耐庵", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“人之初，性本善”出自哪部启蒙读物？",
+    "options": [
+      { "text": "《三字经》", "is_correct": true },
+      { "text": "《百家姓》", "is_correct": false },
+      { "text": "《千字文》", "is_correct": false },
+      { "text": "《弟子规》", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“白日依山尽，黄河入海流”的作者是谁？",
+    "options": [
+      { "text": "王之涣", "is_correct": true },
+      { "text": "王维", "is_correct": false },
+      { "text": "李白", "is_correct": false },
+      { "text": "孟浩然", "is_correct": false }
+    ]
+  },
+  {
+    "text": "十二生肖中排在第一位的是什么？",
+    "options": [
+      { "text": "鼠", "is_correct": true },
+      { "text": "牛", "is_correct": false },
+      { "text": "虎", "is_correct": false },
+      { "text": "兔", "is_correct": false }
+    ]
+  },
+  {
+    "text": "“草长莺飞二月天，拂堤杨柳醉春烟”的作者是谁？",
+    "options": [
+      { "text": "高鼎", "is_correct": true },
+      { "text": "杜甫", "is_correct": false },
+      { "text": "白居易", "is_correct": false },
+      { "text": "王维", "is_correct": false }
+    ]
+  },
+  {
+    "text": "下列哪一项属于中国古代四大发明？",
+    "options": [
+      { "text": "造纸术", "is_correct": true },
+      { "text": "地动仪", "is_correct": false },
+      { "text": "浑天仪", "is_correct": false },
+      { "text": "司南车", "is_correct": false }
+    ]
+  }
+]

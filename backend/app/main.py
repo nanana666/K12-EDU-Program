@@ -29,6 +29,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.middleware("http")
+async def ensure_utf8_json(request, call_next):
+    """所有 JSON 响应显式声明 UTF-8，避免客户端按非 UTF-8 解析中文。"""
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+    if content_type.startswith("application/json") and "charset" not in content_type:
+        response.headers["content-type"] = "application/json; charset=utf-8"
+    return response
+
 # 局域网内学生端访问，允许所有来源（可后续按需收紧）
 app.add_middleware(
     CORSMiddleware,
