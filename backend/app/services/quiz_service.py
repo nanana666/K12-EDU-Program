@@ -4,9 +4,10 @@ import json
 from collections import defaultdict
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.exceptions import AppError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.models.answer import AnswerRecord
 from app.models.option import Option
 from app.models.question import Question
@@ -83,6 +84,33 @@ def get_active_session(db: Session) -> QuizSession | None:
     )
 
 
+def list_active_sessions(db: Session) -> list[QuizSession]:
+    """返回所有进行中的活动（学生端活动列表）。"""
+    stmt = (
+        select(QuizSession)
+        .where(QuizSession.status == "active")
+        .options(selectinload(QuizSession.questions))
+        .order_by(QuizSession.id.desc())
+    )
+    return list(db.scalars(stmt).unique())
+
+
+def get_session_for_student(db: Session, session_id: int) -> QuizSession:
+    """获取单个活动详情（学生视角，路由层负责剥离正确答案）。"""
+    session = db.scalar(
+        select(QuizSession)
+        .where(QuizSession.id == session_id)
+        .options(
+            selectinload(QuizSession.questions).selectinload(
+                QuizSessionQuestion.question
+            )
+        )
+    )
+    if session is None:
+        raise NotFoundError(f"答题活动不存在：{session_id}")
+    return session
+
+
 def finish_session(db: Session, session_id: int) -> QuizSession:
     """结束答题活动。"""
     session = _get_session(db, session_id)
@@ -95,19 +123,15 @@ def finish_session(db: Session, session_id: int) -> QuizSession:
 def submit_answers(
     db: Session, session_id: int, student_id: str, answers: list[dict]
 ) -> QuizSession:
-    """学生提交答案：校验后写入（同一题重复提交则覆盖）。"""
+    """学生提交答案：校验后写入，并发安全（重复提交返回 409）。"""
     session = _get_session(db, session_id)
     if session.status != "active":
         raise AppError("该答题活动已结束，无法提交", code=409, status_code=409)
 
-    # 学号不存在则自动创建学生
-    student = db.get(Student, student_id)
-    if student is None:
-        student = Student(id=student_id, name=f"学生-{student_id[:8]}")
-        db.add(student)
-
     allowed_questions = {sq.question_id for sq in session.questions}
 
+    # 第一阶段：纯读预校验（题目归属、选项合法性、判分依据）
+    prepared: dict[int, tuple[list[int], bool, bool]] = {}
     for item in answers:
         question_id = item["question_id"]
         if question_id not in allowed_questions:
@@ -157,32 +181,55 @@ def submit_answers(
         is_multi = len(correct_option_ids) > 1
         is_correct = set(option_ids) == correct_option_ids
 
-        record = db.scalar(
-            select(AnswerRecord).where(
+        # 同一题出现多次时，后者覆盖前者
+        prepared[question_id] = (option_ids, is_multi, is_correct)
+
+    # 第二阶段：写库。并发下可能因“同一学生重复提交”或“自动创建学生撞主键”
+    # 触发唯一约束冲突，最多重试 1 次；重试后仍冲突则按重复提交返回 409。
+    for attempt in range(2):
+        # 同一学生同一活动只允许提交一次，禁止重新作答
+        existed = db.scalar(
+            select(AnswerRecord.id).where(
                 AnswerRecord.session_id == session_id,
                 AnswerRecord.student_id == student_id,
-                AnswerRecord.question_id == question_id,
             )
         )
-        if record is None:
-            record = AnswerRecord(
-                session_id=session_id,
-                student_id=student_id,
-                question_id=question_id,
-                selected_option_ids=json.dumps(option_ids, ensure_ascii=False),
-                selected_option_id=option_ids[0] if not is_multi else None,
-                is_multi=is_multi,
-                is_correct=is_correct,
+        if existed is not None:
+            raise AppError(
+                "你已提交过该答题活动，不能重复作答",
+                code=409,
+                status_code=409,
             )
-            db.add(record)
-        else:
-            record.selected_option_ids = json.dumps(option_ids, ensure_ascii=False)
-            record.selected_option_id = option_ids[0] if not is_multi else None
-            record.is_multi = is_multi
-            record.is_correct = is_correct
 
-    db.commit()
-    return session
+        # 学号不存在则自动创建学生
+        student = db.get(Student, student_id)
+        if student is None:
+            db.add(Student(id=student_id, name=f"学生-{student_id[:8]}"))
+
+        for question_id, (option_ids, is_multi, is_correct) in prepared.items():
+            db.add(
+                AnswerRecord(
+                    session_id=session_id,
+                    student_id=student_id,
+                    question_id=question_id,
+                    selected_option_ids=json.dumps(option_ids, ensure_ascii=False),
+                    selected_option_id=option_ids[0] if not is_multi else None,
+                    is_multi=is_multi,
+                    is_correct=is_correct,
+                )
+            )
+
+        try:
+            db.commit()
+            return session
+        except IntegrityError:
+            db.rollback()
+            if attempt == 0:
+                # 并发竞争导致唯一约束冲突：回滚后重试一次
+                continue
+            raise ConflictError("你已提交过该答题活动，不能重复作答")
+
+    raise ConflictError("你已提交过该答题活动，不能重复作答")  # 理论不可达
 
 
 def get_stats(db: Session, session_id: int) -> QuizStatsOut:

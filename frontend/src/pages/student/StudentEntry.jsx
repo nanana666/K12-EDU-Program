@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import http from "@/api/http";
 import { useAuth } from "@/store/auth";
@@ -9,7 +9,7 @@ import { useSettings } from "@/store/settings";
  * 学生端入口：输入服务器地址与学号登录（学号不存在自动注册）。
  */
 export default function StudentEntry() {
-  const { student, loginStudent } = useAuth();
+  const { loginStudent, logoutStudent } = useAuth();
   const { serverBase, setServerBase } = useSettings();
   const navigate = useNavigate();
 
@@ -19,9 +19,10 @@ export default function StudentEntry() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  if (student) {
-    return <Navigate to="/student/home" replace />;
-  }
+  // 每次进入学生端都清空内存中的学生登录态，强制重新输入学号与姓名
+  useEffect(() => {
+    logoutStudent();
+  }, [logoutStudent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

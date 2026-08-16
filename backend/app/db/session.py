@@ -13,12 +13,25 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 engine = create_engine(
     settings.database_url,
     connect_args={"check_same_thread": False},  # SQLite 多线程访问
+    # 局域网多设备并发访问：适当放大连接池，避免高峰期排队等连接
+    pool_size=20,
+    max_overflow=30,
 )
 
-# SQLite 默认不启用外键约束，这里强制开启以保证级联删除等行为正确
 @event.listens_for(engine, "connect")
-def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+def _configure_sqlite(dbapi_connection, connection_record):
+    """每个连接建立时应用 SQLite 并发/完整性 PRAGMA。
+
+    - journal_mode=WAL：读写并行，大幅降低多设备同时提交时的锁冲突；
+    - synchronous=NORMAL：WAL 模式下在吞吐与安全之间取平衡；
+    - busy_timeout=10000：写锁被占用时最多等待 10 秒，避免立刻抛
+      "database is locked"；
+    - foreign_keys=ON：SQLite 默认不启用外键约束，这里强制开启。
+    """
     cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA busy_timeout=10000")
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
 
