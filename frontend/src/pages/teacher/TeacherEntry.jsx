@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 import http from "@/api/http";
@@ -13,6 +13,15 @@ export default function TeacherEntry() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [sysInfo, setSysInfo] = useState(null);
+
+  // 拉取后端系统信息，向教师展示学生端需要填写的局域网连接地址
+  useEffect(() => {
+    http
+      .get("/system/info")
+      .then(setSysInfo)
+      .catch(() => setSysInfo(null));
+  }, []);
 
   if (teacher) {
     return <Navigate to="/teacher/home" replace />;
@@ -44,6 +53,18 @@ export default function TeacherEntry() {
         <p className="mt-2 text-center text-sm text-slate-500">
           局域网 Host · 请使用已录入的教师账号登录
         </p>
+        {sysInfo && (
+          <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50/70 p-3">
+            <p className="text-xs font-medium text-brand-700">学生端连接地址</p>
+            <p className="mt-1 break-all font-mono text-base font-semibold text-brand-600">
+              {sysInfo.server_base}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              同一局域网的学生端请填写该地址；本机模拟测试可填
+              http://127.0.0.1:8000
+            </p>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium text-slate-600">教师账号</span>

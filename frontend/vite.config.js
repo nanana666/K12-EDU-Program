@@ -12,6 +12,8 @@ export default defineConfig({
     },
   },
   server: {
+    // 监听所有网卡：局域网内学生端浏览器才能访问本机 Vite 开发服务器
+    host: true,
     port: 5173,
     strictPort: true,
   },

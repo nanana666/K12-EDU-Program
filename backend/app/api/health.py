@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.core.config import settings
+from app.core.net import get_lan_ip
 from app.core.response import success
 
 router = APIRouter(tags=["system"])
@@ -15,6 +16,8 @@ def health() -> dict:
             "app_name": settings.app_name,
             "version": settings.app_version,
             "status": "running",
+            "lan_ip": get_lan_ip() or "127.0.0.1",
+            "port": settings.port,
         },
         message="服务运行正常",
     )

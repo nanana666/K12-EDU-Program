@@ -1,6 +1,7 @@
 """认证业务逻辑：教师/学生登录。"""
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
@@ -28,8 +29,15 @@ def student_login(db: Session, student_id: str, name: str = "") -> Student:
             name=name or f"学生-{student_id[:8]}",
         )
         db.add(student)
-        db.commit()
-        db.refresh(student)
+        try:
+            db.commit()
+            db.refresh(student)
+        except IntegrityError:
+            # 并发首次登录撞主键：回滚后取已由其他请求创建的学生
+            db.rollback()
+            student = db.get(Student, student_id)
+            if student is None:
+                raise
     else:
         if name and name != student.name:
             student.name = name
